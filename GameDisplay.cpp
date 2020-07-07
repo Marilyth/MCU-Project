@@ -35,7 +35,8 @@
  * MSP432 empty main.c template
  *
  ******************************************************************************/
-#include <Display.h>
+#include <GameDisplay.h>
+#include <Utils/BaseObject.h>
 #include <stdlib.h>     /* srand, rand */
 #include "math.h"
 #include "gpio_msp432.h"
@@ -50,7 +51,7 @@
 st7735s_drv* lcd = nullptr;
 uGUI* gui = nullptr;
 Position* playerPos[15];
-Bullet* bullets[50];
+BaseObject* gameObjects[100];
 
 void StartDisplay()
 {
@@ -82,6 +83,16 @@ void DrawObject(int x, int y)
     gui->DrawPixel(x, y, C_RED);
 }
 
+void DrawLine(int x1, int y1, int x2, int y2)
+{
+    gui->DrawLine(x1, y1, x2, y2, C_RED);
+}
+
+void EraseLine(int x1, int y1, int x2, int y2)
+{
+    gui->DrawLine(x1, y1, x2, y2, C_BLACK);
+}
+
 void EraseObject(int x, int y)
 {
     gui->DrawPixel(x, y, C_BLACK);
@@ -103,7 +114,8 @@ bool DrawShieldSimple(bool activate)
 
     if ((abs(x_pos) > 0.3 || abs(y_pos) > 0.3))
     {
-        if(!activate) return true;
+        if (!activate)
+            return true;
 
         //Left or right triggered
         if (abs(x_pos) >= abs(y_pos))
@@ -185,16 +197,16 @@ void NextTick(int timems)
         }
     }
 
-    //Move and draw Bullets
-    for (int i = 0; i < 50; i++)
+    //Move and draw all objects
+    for (int i = 0; i < 100; i++)
     {
-        if (bullets[i] != nullptr)
+        if (gameObjects[i] != nullptr)
         {
-            bullets[i]->move(timems - lastTimems);
-            if (bullets[i]->totalMsPassed >= bullets[i]->milliseconds)
+            gameObjects[i]->move(timems - lastTimems);
+            if (gameObjects[i]->isDone())
             {
-                delete bullets[i];
-                bullets[i] = nullptr;
+                delete gameObjects[i];
+                gameObjects[i] = nullptr;
             }
         }
     }
