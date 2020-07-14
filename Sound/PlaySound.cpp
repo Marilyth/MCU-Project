@@ -1,0 +1,66 @@
+/*
+ * PlaySound.cpp
+ *
+ *  Created on: 04.04.2020
+ *      Author: student
+ *
+ *  Beispielloesung des Praktikums 2
+ */
+
+#include <Sound/PlaySound.h>
+#include <math.h>
+#include <GameDisplay.h>
+#include <Utils/BaseObject.h>
+#include <Utils/HoldObject.h>
+#include <Utils/HitObject.h>
+
+void onBeatTriggered(int duration)
+{
+    BaseObject* obj;
+    Direction direction = static_cast<Direction>(rand() % 4);
+
+    if (duration > 100)
+        obj = new HoldObject(direction, 1000, duration);
+    else
+        obj = new HitObject(direction, 1000);
+}
+
+void PlaySound::_tone_callback(void *p) {
+    PlaySound * _this = static_cast<PlaySound *>(p);
+    _this->_buzzer.gpioToggle();
+    _this->_sum_us += _this->_delay_us;
+}
+
+PlaySound::PlaySound() : _delay_us(0), _sum_us(0), _buzzer(PORT_PIN(2,7))
+{
+    _buzzer.gpioMode(GPIO::OUTPUT);
+}
+
+void PlaySound::playTone(TONE t, int ms) {
+    _delay_us = _calculateDelay_us(t);
+    _sum_us   = 0;
+    _tone_timer.setPeriod(_delay_us, TIMER::PERIODIC);
+    _tone_timer.setCallback(_tone_callback, this);
+    _buzzer.gpioMode(t == P ? GPIO::INPUT : GPIO::OUTPUT);
+    _tone_timer.start();
+    while (_sum_us / 1000 < ms) ;
+    _tone_timer.stop();
+}
+
+void PlaySound::playMelody(ENTRY t[], int BPM, int scale) {
+    int idx = 0;
+    double msPerBeat = 60000.0/BPM;
+    while (t[idx].beatDivider != 0) {
+        double duration = (1.0/t[idx].beatDivider) * msPerBeat * scale;
+
+        onBeatTriggered((int)duration);
+        playTone(t[idx].t, duration);
+        idx++;
+    }
+}
+
+int PlaySound::_calculateDelay_us(TONE t) {
+    float exponent = (37.0 - (float)t) / 12.0;
+    float cnt = pow(2, exponent) * 2272.7272;
+    return (int)(cnt + 0.5);
+}

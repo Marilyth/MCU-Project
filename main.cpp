@@ -39,13 +39,38 @@
 #include <Utils/HoldObject.h>
 #include <Utils/HitObject.h>
 #include <Utils/BaseObject.h>
+#include <Sound/PlaySound.h>
 #include <stdlib.h>     /* srand, rand */
+#include <Sound/Songs.h>
 #include "math.h"
 #include "task.h"
+#include "gpio_msp432.h"
 #include "task_monitor.h"
 using namespace std;
 
 task_monitor monitor;
+
+class SongTask: public task
+{
+private:
+    PlaySound p;
+public:
+    // The base class 'task' has to be called with
+    // the name of the task, and optionally (as the second
+    // parameter) the stack size of the task.
+    SongTask(const char * name) :
+            task(name)
+    {
+    }
+
+    // This is the task code, which is
+    // run by the multitasking kernel
+    void run() override
+    {
+        int i = 0;
+        p.playMelody(SuperMario, 80, 2);
+    }
+};
 
 class GameTask: public task
 {
@@ -69,7 +94,7 @@ public:
     }
 };
 
-class ObjectSpawn: public task
+/*class ObjectSpawn: public task
 {
 public:
     // The base class 'task' has to be called with
@@ -91,7 +116,7 @@ public:
             Direction direction = static_cast<Direction>(rand() % 4);
             bool isHold = rand() % 2 == 1;
 
-            if(isHold)
+            if (isHold)
                 obj = new HoldObject(direction, 1000, 1000);
             else
                 obj = new HitObject(direction, 1000);
@@ -99,16 +124,17 @@ public:
             sleep(500);
         }
     }
-};
+};*/
 
 int main()
 {
     StartDisplay();
-
-    ObjectSpawn o("Creates objects the player needs to deflect");
-    o.start();
+    //ObjectSpawn o("Creates objects the player needs to deflect");
+    //o.start();
     GameTask g("Handles game ticks, drawing and logic");
     g.start();
+    SongTask s("Plays the song");
+    s.start();
 
     task_monitor monitor;
     monitor.start();
