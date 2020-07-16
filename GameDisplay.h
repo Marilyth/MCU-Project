@@ -13,7 +13,7 @@ void StartDisplay();
 
 void DrawObject(int x, int y);
 
-void DrawShield(int radius);
+Direction GetShieldPosition();
 
 void DrawLine(int x1, int y1, int x2, int y2);
 
@@ -23,7 +23,6 @@ void EraseObject(int x, int y);
 
 void NextTick(int timems);
 
-//Space for up to 100 objects of hit or hold
-extern BaseObject* gameObjects[100];
+extern BaseObject* gameObjects[20];
 
 #endif

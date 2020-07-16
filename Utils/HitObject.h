@@ -19,7 +19,7 @@ public:
             BaseObject(d, millis)
     {
         //Slide this Object into the next available slot
-        for (int i = 0; i < 100; i++)
+        for (int i = 0; i < 5; i++)
         {
             if (gameObjects[i] == nullptr)
             {
@@ -29,18 +29,34 @@ public:
         }
     }
 
-    void move(int msPassed)
+    void move(int msPassed, Direction shieldDirection)
     {
         EraseObject(pos->x, pos->y);
 
         double progress = (double) msPassed / msDuration;
         totalMsPassed += msPassed;
 
-        if (totalMsPassed < msDuration)
+        if (totalMsPassed < msDuration*1.15)
         {
+            //Player deflected this object in time
+            if ((double) totalMsPassed / msDuration > 0.85)
+            {
+                if (shieldDirection == direction)
+                {
+                    state = hit;
+                    return;
+                }
+            }
+
             pos->x += x_dir * progress;
             pos->y += y_dir * progress;
             DrawObject(pos->x, pos->y);
+        }
+
+        //Player failed to deflect the object in time
+        else
+        {
+            state = missed;
         }
     }
 

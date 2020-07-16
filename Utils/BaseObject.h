@@ -13,7 +13,12 @@
 
 enum Direction
 {
-    up, down, left, right
+    up, down, left, right, idle
+};
+
+enum State
+{
+    undetermined, hit, missed
 };
 
 class BaseObject
@@ -26,8 +31,13 @@ protected:
     int totalMsPassed;
 
 public:
+    State state;
+    Direction direction;
+
     BaseObject(Direction d, int millis)
     {
+        state = undetermined;
+        direction = d;
         int x = 0;
         int y = 0;
         if (d == up)
@@ -48,14 +58,19 @@ public:
             x = 127;
             y = 63;
         }
+
         pos = new Position(x, y);
         msDuration = millis;
         totalMsPassed = 0;
         x_dir = (63 - pos->x);
+        if (x_dir != 0)
+            x_dir += x_dir > 0 ? -10 : 10;
         y_dir = (63 - pos->y);
+        if (y_dir != 0)
+            y_dir += y_dir > 0 ? -10 : 10;
     }
 
-    virtual void move(int msPassed) = 0;
+    virtual void move(int msPassed, Direction shieldDirection) = 0;
 
     virtual bool isDone() = 0;
 };

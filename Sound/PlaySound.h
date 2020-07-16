@@ -95,6 +95,9 @@ struct ENTRY
 {
     TONE t;
     double beatDivider;
+    bool isObject = false;
+    int dueAtMS = -1;
+    int durationMS = -1;
 };
 
 class PlaySound
@@ -107,13 +110,14 @@ public:
 
 private:
     static void _tone_callback(void *);
-    void (*on_beat_triggered)(int duration);
     int _calculateDelay_us(TONE t);
     int _delay_us;
     int _sum_us;
     gpio_msp432_pin _buzzer;
     timer_msp432 _tone_timer;
-
+    bool _is_silent;
 };
+
+void CalculateDueTime(ENTRY t[], int bpm, int scale = 1);
 
 #endif /* PLAYSOUND_H_ */

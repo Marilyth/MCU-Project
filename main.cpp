@@ -35,12 +35,17 @@
  * MSP432 empty main.c template
  *
  ******************************************************************************/
+
+#ifndef MAIN
+#define MAIN
+
 #include <GameDisplay.h>
 #include <Utils/HoldObject.h>
 #include <Utils/HitObject.h>
 #include <Utils/BaseObject.h>
 #include <Sound/PlaySound.h>
 #include <stdlib.h>     /* srand, rand */
+#include <time.h>
 #include <Sound/Songs.h>
 #include "math.h"
 #include "task.h"
@@ -67,8 +72,10 @@ public:
     // run by the multitasking kernel
     void run() override
     {
-        int i = 0;
-        p.playMelody(SuperMario, 80, 2);
+        //Sync Object Spawner with melody
+        sleep(1000);
+
+        p.playMelody(SuperMario, SuperMarioBPM, 2);
     }
 };
 
@@ -94,8 +101,10 @@ public:
     }
 };
 
-/*class ObjectSpawn: public task
+class ObjectSpawn: public task
 {
+private:
+    Direction lastDirection;
 public:
     // The base class 'task' has to be called with
     // the name of the task, and optionally (as the second
@@ -105,35 +114,52 @@ public:
     {
     }
 
-    // This is the task code, which is
-    // run by the multitasking kernel
+    void onBeatTriggered(int duration)
+    {
+        BaseObject* obj;
+        Direction direction;
+
+        do
+        {
+            direction = static_cast<Direction>(rand() % 4);
+        }
+        while (direction == lastDirection);
+
+        if (duration > 200)
+            obj = new HoldObject(direction, 1000, duration);
+        else
+            obj = new HitObject(direction, 1000);
+    }
+
+// This is the task code, which is
+// run by the multitasking kernel
     void run() override
     {
-        int counter = 1;
-        while (1)
+        int idx = 0;
+        auto song = SuperMario;
+        while (song[idx].beatDivider != 0)
         {
-            BaseObject* obj;
-            Direction direction = static_cast<Direction>(rand() % 4);
-            bool isHold = rand() % 2 == 1;
-
-            if (isHold)
-                obj = new HoldObject(direction, 1000, 1000);
-            else
-                obj = new HitObject(direction, 1000);
-
-            sleep(500);
+            auto currentEntry = song[idx];
+            while (monitor.millis() < song[idx].dueAtMS)
+                ;
+            if (song[idx].t != P)
+                onBeatTriggered(song[idx].durationMS);
+            idx++;
         }
     }
-};*/
+};
 
 int main()
 {
+    srand(time(0));
+    CalculateDueTime(SuperMario, SuperMarioBPM, 2);
     StartDisplay();
-    //ObjectSpawn o("Creates objects the player needs to deflect");
-    //o.start();
+    ObjectSpawn o(
+            "Creates random objects the player needs to deflect with their joystick");
+    o.start();
     GameTask g("Handles game ticks, drawing and logic");
     g.start();
-    SongTask s("Plays the song");
+    SongTask s("Plays the song and creates objects based on the beats");
     s.start();
 
     task_monitor monitor;
@@ -142,3 +168,5 @@ int main()
 
     return 0;
 }
+
+#endif

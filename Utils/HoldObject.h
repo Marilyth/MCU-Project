@@ -17,6 +17,7 @@ class HoldObject: public BaseObject
 private:
     Position* tailPos;
     int msHold;
+    int joystickHold;
     bool isTailActive;
 
 public:
@@ -25,10 +26,11 @@ public:
     {
         tailPos = new Position(this->pos->x, this->pos->y);
         msHold = millisHold;
+        joystickHold = 0;
         isTailActive = false;
 
         //Slide this Object into the next available slot
-        for (int i = 0; i < 100; i++)
+        for (int i = 0; i < 5; i++)
         {
             if (gameObjects[i] == nullptr)
             {
@@ -38,7 +40,7 @@ public:
         }
     }
 
-    void move(int msPassed)
+    void move(int msPassed, Direction shieldDirection)
     {
         double progress = (double) msPassed / msDuration;
 
@@ -47,27 +49,45 @@ public:
                     - ((double) msHold / msDuration)) > 0;
 
         totalMsPassed += msPassed;
+        if ((double)totalMsPassed / msDuration > 0.85 && shieldDirection == direction)
+            joystickHold += msPassed;
 
-        if (totalMsPassed < msDuration)
+        if (totalMsPassed < msDuration * 1.15)
         {
-            DrawLine(pos->x, pos->y, pos->x + x_dir * progress,
-                     pos->y + y_dir * progress);
-            pos->x += x_dir * progress;
-            pos->y += y_dir * progress;
+            if ((double)totalMsPassed / msDuration <= 0.85
+                    || shieldDirection != direction)
+            {
+                DrawLine(pos->x, pos->y, pos->x + x_dir * progress,
+                         pos->y + y_dir * progress);
+                pos->x += x_dir * progress;
+                pos->y += y_dir * progress;
+            }
         }
 
-        if (isTailActive > 0)
+        if (isTailActive)
         {
             EraseLine(tailPos->x, tailPos->y, tailPos->x + x_dir * progress,
                       tailPos->y + y_dir * progress);
             tailPos->x += x_dir * progress;
             tailPos->y += y_dir * progress;
         }
+
+        //Holdobject reached center
+        if(isDone()){
+            //Player held the object for long enough
+            if(joystickHold >= msHold-20){
+                state = hit;
+            }
+            //Player failed to hold the hold the joystick in time
+            else {
+                state = missed;
+            }
+        }
     }
 
     bool isDone()
     {
-        return totalMsPassed > msDuration + msHold;
+        return totalMsPassed > (msDuration + msHold)*1.15;
     }
 };
 

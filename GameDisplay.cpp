@@ -36,8 +36,8 @@
  *
  ******************************************************************************/
 #include <GameDisplay.h>
-#include <Utils/BaseObject.h>
-#include <stdlib.h>     /* srand, rand */
+#include <Utils/GameInformation.h>
+#include <stdio.h>
 #include "math.h"
 #include "gpio_msp432.h"
 #include "timer_msp432.h"
@@ -47,11 +47,13 @@
 #include "uGUI.h"
 #include "uGUI_colors.h"
 #include "font_4x6.h"
+#include "yahal_String.h"
+#include <string>
 
 st7735s_drv* lcd = nullptr;
 uGUI* gui = nullptr;
-Position* playerPos[15];
-BaseObject* gameObjects[100];
+GameInformation* infos = new GameInformation();
+BaseObject* gameObjects[20];
 
 void StartDisplay()
 {
@@ -74,13 +76,13 @@ void StartDisplay()
 
     gui->SetForecolor(C_YELLOW);
     gui->FontSelect(&FONT_4X6);
-    gui->PutString(4, 3, "Move the joystick!");
-    gui->DrawFrame(54, 54, 74, 74, C_YELLOW);
+    gui->PutString(4, 3, "Score: ");
+    gui->PutString(4, 10, "Combo: ");
 }
 
 void DrawObject(int x, int y)
 {
-    gui->DrawPixel(x, y, C_RED);
+    gui->FillFrame(x, y, x + 1, y + 1, C_RED);
 }
 
 void DrawLine(int x1, int y1, int x2, int y2)
@@ -95,11 +97,10 @@ void EraseLine(int x1, int y1, int x2, int y2)
 
 void EraseObject(int x, int y)
 {
-    gui->DrawPixel(x, y, C_BLACK);
+    gui->FillFrame(x, y, x + 1, y + 1, C_BLACK);
 }
 
-int triggeredAt = 0;
-bool DrawShieldSimple(bool activate)
+Direction GetShieldPosition()
 {
     adc14_msp432_channel joy_X(15);
     adc14_msp432_channel joy_Y(9);
@@ -112,104 +113,141 @@ bool DrawShieldSimple(bool activate)
     int y_raw = joy_Y.adcReadRaw();
     double y_pos = ((y_raw - 512) / 512.0) * (-1);
 
+    //Joystick is not idle
     if ((abs(x_pos) > 0.3 || abs(y_pos) > 0.3))
     {
-        if (!activate)
-            return true;
-
         //Left or right triggered
         if (abs(x_pos) >= abs(y_pos))
         {
+            //Left
             if (x_pos < 0)
+            {
+                return left;
                 gui->DrawLine(54, 54, 54, 74, C_BLUE);
+            }
+            //Right
             else
+            {
+                return right;
                 gui->DrawLine(74, 54, 74, 74, C_BLUE);
+            }
         }
 
         //Up or down triggered
         else
         {
+            //Up
             if (y_pos < 0)
+            {
+                return up;
                 gui->DrawLine(54, 54, 74, 54, C_BLUE);
+            }
+            //Down
             else
+            {
+                return down;
                 gui->DrawLine(54, 74, 74, 74, C_BLUE);
+            }
         }
-
-        return true;
     }
 
-    return false;
+    //Joystick is idle
+    return idle;
 }
 
-static const double PI = 3.1415926535;
-void DrawShield(int radius)
+void DrawScore()
 {
-    adc14_msp432_channel joy_X(15);
-    adc14_msp432_channel joy_Y(9);
+    char scoreAsString[7];
+    sprintf(scoreAsString, "%d", infos->score);
+    gui->PutString(36, 3, scoreAsString);
+}
 
-    joy_X.adcMode(ADC::ADC_10_BIT);
-    int x_raw = joy_X.adcReadRaw();
-    double x_pos = (x_raw - 512) / 512.0;
+void DrawCombo()
+{
+    char comboAsString[4];
+    sprintf(comboAsString, "%dx", infos->combo);
+    gui->PutString(36, 10, comboAsString);
+}
 
-    joy_Y.adcMode(ADC::ADC_10_BIT);
-    int y_raw = joy_Y.adcReadRaw();
-    double y_pos = ((y_raw - 512) / 512.0) * (-1);
+void DrawAccuracy()
+{
+    char accuracyString[7];
+    double accuracy = 100
+            * ((double) infos->hits / (infos->hits + infos->misses));
+    sprintf(accuracyString, "%03d%%", (int) accuracy);
+    gui->PutString(36, 17, accuracyString);
+}
 
-    int cur_x = 64 + (int) (x_pos * 10);
-    int cur_y = 64 + (int) (y_pos * 10);
-
-    double length = sqrt(y_pos * y_pos + x_pos * x_pos);
-    double starting_angle = (acos((x_pos) / length) * 180 / PI);
-    if (y_pos < 0)
-        starting_angle *= -1;
-    int index = 0;
-    for (int angle = starting_angle - 7; angle < starting_angle + 7; angle++)
+void DrawShield(Direction d, UG_COLOR c)
+{
+    switch (d)
     {
-        int x_circ = 64 + radius * cos(angle * PI / 180);
-        int y_circ = 64 + radius * sin(angle * PI / 180);
-        gui->DrawPixel(x_circ, y_circ, C_YELLOW);
-        if (playerPos[index]->x != x_circ || playerPos[index]->y != y_circ)
-        {
-            gui->DrawPixel(playerPos[index]->x, playerPos[index]->y, C_BLACK);
-            playerPos[index]->x = x_circ;
-            playerPos[index]->y = y_circ;
-        }
+    case up:
+        gui->DrawLine(54, 54, 74, 54, c);
+        break;
+    case down:
+        gui->DrawLine(54, 74, 74, 74, c);
+        break;
+    case left:
+        gui->DrawLine(54, 54, 54, 74, c);
+        break;
+    case right:
+        gui->DrawLine(74, 54, 74, 74, c);
+        break;
+    default:
+        break;
     }
 }
 
-bool isTriggered = false;
 int lastTimems = 0;
+bool mustChangeDirection = false;
 void NextTick(int timems)
 {
-    //Draw Player
-    if (isTriggered && !DrawShieldSimple(false))
-    {
-        isTriggered = false;
-    }
+    Direction joystick = GetShieldPosition();
 
-    if (timems - triggeredAt > 200)
+    if (joystick != infos->shieldDirection)
     {
-        gui->DrawFrame(54, 54, 74, 74, C_BLACK);
-        if (!isTriggered && DrawShieldSimple(true))
-        {
-            triggeredAt = timems;
-            isTriggered = true;
-        }
+        DrawShield(joystick, C_BLUE);
+        DrawShield(infos->shieldDirection, C_BLACK);
+        infos->shieldDirection = joystick;
+        mustChangeDirection = false;
     }
 
     //Move and draw all objects
-    for (int i = 0; i < 100; i++)
+    for (int i = 0; i < 5; i++)
     {
         if (gameObjects[i] != nullptr)
         {
-            gameObjects[i]->move(timems - lastTimems);
-            if (gameObjects[i]->isDone())
+            gameObjects[i]->move(
+                    timems - lastTimems,
+                    mustChangeDirection ? idle : infos->shieldDirection);
+            if (gameObjects[i]->state != undetermined)
             {
+                if (gameObjects[i]->state == hit)
+                {
+                    infos->score += 1 * ++infos->combo;
+                    infos->hits++;
+                    if (gameObjects[i]->direction == infos->shieldDirection)
+                        mustChangeDirection = true;
+                }
+                else
+                {
+                    if (infos->combo != 0)
+                    {
+                        infos->combo = 0;
+                        infos->misses++;
+                    }
+                }
+
                 delete gameObjects[i];
                 gameObjects[i] = nullptr;
             }
         }
     }
+
+    DrawScore();
+    DrawCombo();
+    DrawAccuracy();
 
     lastTimems = timems;
 }
