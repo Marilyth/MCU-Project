@@ -13,7 +13,13 @@ void StartDisplay();
 
 void DrawObject(int x, int y);
 
-Direction GetShieldPosition();
+void SelectObjectSpeed();
+
+void SelectSongSpeed();
+
+void SelectSong();
+
+Direction GetJoystickPosition();
 
 void DrawLine(int x1, int y1, int x2, int y2);
 

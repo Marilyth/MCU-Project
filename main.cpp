@@ -44,6 +44,7 @@
 #include <Utils/HitObject.h>
 #include <Utils/BaseObject.h>
 #include <Sound/PlaySound.h>
+#include <Utils/StaticBase.h>
 #include <stdlib.h>     /* srand, rand */
 #include <time.h>
 #include <Sound/Songs.h>
@@ -54,6 +55,11 @@
 using namespace std;
 
 task_monitor monitor;
+int objectSpeedMs = 1000;
+double songSpeedMultiplicator = 1;
+int songSelection = 0;
+int songCount = 1;
+int objectTimer = 0;
 
 class SongTask: public task
 {
@@ -72,10 +78,29 @@ public:
     // run by the multitasking kernel
     void run() override
     {
-        //Sync Object Spawner with melody
-        sleep(1000);
+        int idx = 0;
 
-        p.playMelody(SuperMario, SuperMarioBPM, 2);
+        //Sync Object Spawner with melody
+        sleep(objectSpeedMs);
+        int startTime = monitor.millis();
+
+        while (SongList[songSelection].song[idx].beatDivider != 0)
+        {
+            auto currentEntry = SongList[songSelection].song[idx];
+
+            while ((monitor.millis() - startTime)
+                    <= SongList[songSelection].song[idx].dueAtMS)
+                ;
+            int overdue = (monitor.millis() - startTime)
+                    - SongList[songSelection].song[idx].dueAtMS;
+            if (SongList[songSelection].song[idx].t != P)
+                p.playTone(
+                        SongList[songSelection].song[idx].t,
+                        SongList[songSelection].song[idx].durationMS - overdue);
+            idx++;
+        }
+
+        //p.playMelody(SongList[songSelection].song, SongList[songSelection].bpm, SongList[songSelection].scale);
     }
 };
 
@@ -105,6 +130,7 @@ class ObjectSpawn: public task
 {
 private:
     Direction lastDirection;
+    bool wasHold = true;
 public:
     // The base class 'task' has to be called with
     // the name of the task, and optionally (as the second
@@ -118,17 +144,21 @@ public:
     {
         BaseObject* obj;
         Direction direction;
+        bool isHold = duration > 300 * songSpeedMultiplicator;
 
         do
         {
             direction = static_cast<Direction>(rand() % 4);
         }
-        while (direction == lastDirection);
+        while (direction == lastDirection); //&& !(!isHold && !wasHold));
 
-        if (duration > 200)
-            obj = new HoldObject(direction, 1000, duration);
+        if (isHold)
+            obj = new HoldObject(direction, objectSpeedMs, duration);
         else
-            obj = new HitObject(direction, 1000);
+            obj = new HitObject(direction, objectSpeedMs);
+
+        lastDirection = direction;
+        wasHold = isHold;
     }
 
 // This is the task code, which is
@@ -136,14 +166,20 @@ public:
     void run() override
     {
         int idx = 0;
-        auto song = SuperMario;
-        while (song[idx].beatDivider != 0)
+        int startTime = monitor.millis();
+        objectTimer = startTime;
+
+        while (SongList[songSelection].song[idx].beatDivider != 0)
         {
-            auto currentEntry = song[idx];
-            while (monitor.millis() < song[idx].dueAtMS)
+            auto currentEntry = SongList[songSelection].song[idx];
+            while ((monitor.millis() - startTime)
+                    <= SongList[songSelection].song[idx].dueAtMS)
                 ;
-            if (song[idx].t != P)
-                onBeatTriggered(song[idx].durationMS);
+            int overdue = (monitor.millis() - startTime)
+                    - SongList[songSelection].song[idx].dueAtMS;
+            if (SongList[songSelection].song[idx].t != P)
+                onBeatTriggered(
+                        SongList[songSelection].song[idx].durationMS - overdue);
             idx++;
         }
     }
@@ -152,7 +188,6 @@ public:
 int main()
 {
     srand(time(0));
-    CalculateDueTime(SuperMario, SuperMarioBPM, 2);
     StartDisplay();
     ObjectSpawn o(
             "Creates random objects the player needs to deflect with their joystick");

@@ -19,13 +19,16 @@ public:
             BaseObject(d, millis)
     {
         //Slide this Object into the next available slot
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 20; i++)
         {
             if (gameObjects[i] == nullptr)
             {
                 gameObjects[i] = this;
                 break;
             }
+
+            if(i == 20)
+                int test = 0;
         }
     }
 

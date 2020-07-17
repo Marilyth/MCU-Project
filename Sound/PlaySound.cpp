@@ -13,6 +13,7 @@
 #include <Utils/BaseObject.h>
 #include <Utils/HoldObject.h>
 #include <Utils/HitObject.h>
+#include <Utils/StaticBase.h>
 
 void PlaySound::_tone_callback(void *p)
 {
@@ -41,19 +42,6 @@ void PlaySound::playTone(TONE t, int ms)
     _tone_timer.stop();
 }
 
-void PlaySound::playMelody(ENTRY t[], int BPM, int scale)
-{
-    int idx = 0;
-    double msPerBeat = 60000.0 / BPM;
-    while (t[idx].beatDivider != 0)
-    {
-        double duration = (1.0 / t[idx].beatDivider) * msPerBeat * scale;
-
-        playTone(t[idx].t, duration);
-        idx++;
-    }
-}
-
 void CalculateDueTime(ENTRY t[], int BPM, int scale)
 {
     int idx = 0;
@@ -61,7 +49,7 @@ void CalculateDueTime(ENTRY t[], int BPM, int scale)
     double usGoneBy = 0;
     while (t[idx].beatDivider != 0)
     {
-        double duration = (1.0 / t[idx].beatDivider) * msPerBeat * scale;
+        double duration = (1.0 / t[idx].beatDivider) * msPerBeat * scale * songSpeedMultiplicator;
         t[idx].dueAtMS = usGoneBy / 1000;
         t[idx].durationMS = (int)duration;
         usGoneBy += duration * 1000;

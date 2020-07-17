@@ -93,9 +93,8 @@ enum TONE
 
 struct ENTRY
 {
-    TONE t;
-    double beatDivider;
-    bool isObject = false;
+    TONE t = P;
+    double beatDivider = 0;
     int dueAtMS = -1;
     int durationMS = -1;
 };
@@ -106,7 +105,6 @@ public:
     PlaySound();
 
     void playTone(TONE t, int ms);
-    void playMelody(ENTRY t[], int bpm, int scale = 1);
 
 private:
     static void _tone_callback(void *);
