@@ -11,6 +11,7 @@
 #include <GameDisplay.h>
 #include <Utils/BaseObject.h>
 #include <Utils/Position.h>
+#include <Utils/SuccessObject.h>
 
 class HoldObject: public BaseObject
 {
@@ -80,6 +81,7 @@ public:
             if (joystickHold >= msHold - 50)
             {
                 state = hit;
+                SuccessObject* s = new SuccessObject(direction, 200);
             }
             else if (joystickHold + (msDuration + msHold) * 1.15 - totalMsPassed
                     < msHold - 50)

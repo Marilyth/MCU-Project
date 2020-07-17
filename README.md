@@ -1,2 +1,2 @@
 # MCU-Project
-Code for my microcontroller project.
+Random generated Rhythm Game for my MCU Project

@@ -11,6 +11,7 @@
 #include <GameDisplay.h>
 #include <Utils/Position.h>
 #include <Utils/BaseObject.h>
+#include <Utils/SuccessObject.h>
 
 class HitObject: public BaseObject
 {
@@ -26,9 +27,6 @@ public:
                 gameObjects[i] = this;
                 break;
             }
-
-            if(i == 20)
-                int test = 0;
         }
     }
 
@@ -47,6 +45,7 @@ public:
                 if (shieldDirection == direction)
                 {
                     state = hit;
+                    SuccessObject* s = new SuccessObject(direction, 200);
                     return;
                 }
             }

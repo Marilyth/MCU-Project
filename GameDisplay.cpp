@@ -57,6 +57,12 @@ uGUI* gui = nullptr;
 GameInformation* infos = new GameInformation();
 BaseObject* gameObjects[20];
 
+void wait(int ticks)
+{
+    for (int i = 0; i < ticks; i++)
+        ;
+}
+
 void StartDisplay()
 {
     // Setup SPI interface
@@ -82,6 +88,17 @@ void StartDisplay()
     SelectSongSpeed();
     SelectSong();
     lcd->clearScreen(0x0);
+
+    gui->PutString(45, 53, "Have Fun!");
+    char countdown[2];
+    for (int i = 5; i > 0; i--)
+    {
+        sprintf(countdown, "%d", i);
+        gui->PutString(61, 60, countdown);
+        wait(4200000);
+    }
+    lcd->clearScreen(0x0);
+
     gui->PutString(4, 3, "Score: ");
     gui->PutString(4, 10, "Combo: ");
 }
@@ -90,16 +107,16 @@ void SelectObjectSpeed()
 {
     lcd->clearScreen(0x0);
     gui->PutString(4, 3, "Please select the reaction time-window!");
-    gui->PutString(4, 17, "Move the joystick down to confirm.");
+    gui->PutString(4, 17, "Move the joystick right to confirm.");
 
     Direction joystickPosition = idle;
-    while (joystickPosition != down)
+    while (joystickPosition != right)
     {
-        if (joystickPosition == left && objectSpeedMs > 500)
+        if (joystickPosition == down && objectSpeedMs > 500)
         {
             objectSpeedMs -= 100;
         }
-        else if (joystickPosition == right && objectSpeedMs < 5000)
+        else if (joystickPosition == up && objectSpeedMs < 5000)
         {
             objectSpeedMs += 100;
         }
@@ -109,8 +126,7 @@ void SelectObjectSpeed()
         gui->PutString(40, 63, value);
 
         //Wait a little after input
-        for (int i = 0; i < 200000; i++)
-            ;
+        wait(700000);
 
         do
         {
@@ -126,30 +142,30 @@ void SelectSongSpeed()
     gui->PutString(
             4, 3,
             "Please select the song speed multiplicator - higher is slower!");
-    gui->PutString(4, 17, "Move the joystick down to confirm.");
+    gui->PutString(4, 24, "Move the joystick right to confirm.");
 
     Direction joystickPosition = idle;
-    while (joystickPosition != down)
+    while (joystickPosition != right)
     {
-        if (joystickPosition == left && songSpeedMultiplicator > 0.51)
+        if (joystickPosition == down && songSpeedMultiplicator > 0.51)
         {
             songSpeedMultiplicator -= 0.1;
         }
-        else if (joystickPosition == right && songSpeedMultiplicator < 3)
+        else if (joystickPosition == up && songSpeedMultiplicator < 3)
         {
             songSpeedMultiplicator += 0.1;
         }
 
         int multiplicator = songSpeedMultiplicator;
         double test = songSpeedMultiplicator;
-        int multiplicatorDecimal = (songSpeedMultiplicator - multiplicator) * 10;
-        char value[4];
+        int multiplicatorDecimal = (songSpeedMultiplicator - multiplicator)
+                * 10;
+        char value[5];
         sprintf(value, "%d.%dx", multiplicator, multiplicatorDecimal);
         gui->PutString(40, 63, value);
 
         //Wait a little after input
-        for (int i = 0; i < 200000; i++)
-            ;
+        wait(700000);
 
         do
         {
@@ -199,7 +215,7 @@ void SelectSong()
         }
 
         char* name = SongList[songSelection].name;
-        char objectCount[12];
+        char objectCount[14];
         char duration[14];
         sprintf(objectCount, "Objects: %04d", objects);
 
@@ -211,8 +227,7 @@ void SelectSong()
         gui->PutString(4, 84, duration);
 
         //Wait a little after input
-        for (int i = 0; i < 200000; i++)
-            ;
+        wait(700000);
 
         do
         {
@@ -225,6 +240,34 @@ void SelectSong()
 void DrawObject(int x, int y)
 {
     gui->FillFrame(x, y, x + 1, y + 1, C_RED);
+}
+
+void EraseGlitter(int x, int y)
+{
+    gui->DrawPixel(x, y, C_BLACK);
+    gui->DrawPixel(x + 2, y, C_BLACK);
+    gui->DrawPixel(x, y + 3, C_BLACK);
+    gui->DrawPixel(x + 5, y + 1, C_BLACK);
+    gui->DrawPixel(x + 2, y + 2, C_BLACK);
+    gui->DrawPixel(x + 4, y + 4, C_BLACK);
+    gui->DrawPixel(x, y + 4, C_BLACK);
+    gui->DrawPixel(x + 1, y + 2, C_BLACK);
+    gui->DrawPixel(x + 2, y, C_BLACK);
+    gui->DrawPixel(x, y + 3, C_BLACK);
+}
+
+void DrawGlitter(int x, int y)
+{
+    gui->DrawPixel(x, y, C_YELLOW);
+    gui->DrawPixel(x + 2, y, C_YELLOW);
+    gui->DrawPixel(x, y + 3, C_YELLOW);
+    gui->DrawPixel(x + 5, y + 1, C_YELLOW);
+    gui->DrawPixel(x + 2, y + 2, C_YELLOW);
+    gui->DrawPixel(x + 4, y + 4, C_YELLOW);
+    gui->DrawPixel(x, y + 4, C_YELLOW);
+    gui->DrawPixel(x + 1, y + 2, C_YELLOW);
+    gui->DrawPixel(x + 2, y, C_YELLOW);
+    gui->DrawPixel(x, y + 3, C_YELLOW);
 }
 
 void DrawLine(int x1, int y1, int x2, int y2)
@@ -300,14 +343,14 @@ Direction GetJoystickPosition()
 void DrawScore()
 {
     char scoreAsString[7];
-    sprintf(scoreAsString, "%04d", infos->score);
+    sprintf(scoreAsString, "%d", infos->score);
     gui->PutString(36, 3, scoreAsString);
 }
 
 void DrawCombo()
 {
-    char comboAsString[4];
-    sprintf(comboAsString, "%03dx", infos->combo);
+    char comboAsString[5];
+    sprintf(comboAsString, "%dx", infos->combo);
     gui->PutString(36, 10, comboAsString);
 }
 
@@ -316,7 +359,7 @@ void DrawAccuracy()
     char accuracyString[7];
     double accuracy = 100
             * ((double) infos->hits / (infos->hits + infos->misses));
-    sprintf(accuracyString, "%03d%%", (int) accuracy);
+    sprintf(accuracyString, "%d%%", (int) accuracy);
     gui->PutString(36, 17, accuracyString);
 }
 
@@ -370,9 +413,12 @@ void NextTick(int timems)
                     infos->score += 1 * ++infos->combo;
                     infos->hits++;
                     if (gameObjects[i]->direction == infos->shieldDirection)
+                    {
                         mustChangeDirection = true;
+                        DrawShield(infos->shieldDirection, C_GREEN);
+                    }
                 }
-                else
+                else if(gameObjects[i]->state == missed)
                 {
                     infos->misses++;
                     infos->combo = 0;
@@ -386,7 +432,7 @@ void NextTick(int timems)
 
     DrawScore();
     DrawCombo();
-    DrawAccuracy();
+    //DrawAccuracy();
 
     lastTimems = timems;
 }

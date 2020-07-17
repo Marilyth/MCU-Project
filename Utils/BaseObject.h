@@ -18,7 +18,7 @@ enum Direction
 
 enum State
 {
-    undetermined, hit, missed
+    undetermined, hit, missed, ignore
 };
 
 class BaseObject
