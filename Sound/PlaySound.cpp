@@ -9,10 +9,6 @@
 
 #include <Sound/PlaySound.h>
 #include <math.h>
-#include <GameDisplay.h>
-#include <Utils/BaseObject.h>
-#include <Utils/HoldObject.h>
-#include <Utils/HitObject.h>
 #include <Utils/StaticBase.h>
 
 void PlaySound::_tone_callback(void *p)

@@ -35,7 +35,7 @@
  * MSP432 empty main.c template
  *
  ******************************************************************************/
-#include <GameDisplay.h>
+#include <Visuals/GameDisplay.h>
 #include <Utils/GameInformation.h>
 #include <Utils/StaticBase.h>
 #include <Utils/SuccessObject.h>

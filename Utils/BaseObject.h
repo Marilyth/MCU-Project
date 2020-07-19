@@ -8,7 +8,7 @@
 #ifndef BASEOBJECT_H_
 #define BASEOBJECT_H_
 
-#include <GameDisplay.h>
+#include <Visuals/GameDisplay.h>
 #include <Utils/Position.h>
 
 enum Direction

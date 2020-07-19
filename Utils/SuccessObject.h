@@ -8,7 +8,7 @@
 #ifndef UTILS_SUCCESSOBJECT_H_
 #define UTILS_SUCCESSOBJECT_H_
 
-#include <GameDisplay.h>
+#include <Visuals/GameDisplay.h>
 #include <Utils/BaseObject.h>
 #include <Utils/Position.h>
 

@@ -207,6 +207,5 @@ void Default_Handler(void)
 	/* Enter an infinite loop. */
 	while(1)
 	{
-	    int test = 0;
 	}
 }

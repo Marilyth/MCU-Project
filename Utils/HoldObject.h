@@ -8,7 +8,7 @@
 #ifndef HOLDOBJECT_H_
 #define HOLDOBJECT_H_
 
-#include <GameDisplay.h>
+#include <Visuals/GameDisplay.h>
 #include <Utils/BaseObject.h>
 #include <Utils/Position.h>
 #include <Utils/SuccessObject.h>

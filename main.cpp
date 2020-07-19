@@ -39,7 +39,7 @@
 #ifndef MAIN
 #define MAIN
 
-#include <GameDisplay.h>
+#include <Visuals/GameDisplay.h>
 #include <Tasks/GameLogic.h>
 #include <Tasks/ObjectSpawn.h>
 #include <Tasks/PlaySong.h>
@@ -69,7 +69,7 @@ int main()
     o.start();
     GameLogic g("Handles game ticks, drawing and logic");
     g.start();
-    PlaySong s("Plays the song and creates objects based on the beats");
+    PlaySong s("Plays the song");
     s.start();
 
     monitor.start();

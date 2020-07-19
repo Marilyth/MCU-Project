@@ -8,7 +8,7 @@
 #ifndef HITOBJECT_H_
 #define HITOBJECT_H_
 
-#include <GameDisplay.h>
+#include <Visuals/GameDisplay.h>
 #include <Utils/Position.h>
 #include <Utils/BaseObject.h>
 #include <Utils/SuccessObject.h>
