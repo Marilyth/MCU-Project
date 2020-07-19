@@ -95,6 +95,7 @@ struct ENTRY
 {
     TONE t = P;
     float beatDivider = 0;
+    bool isPlayed = true;
     int dueAtMS = -1;
     unsigned short durationMS = -1;
 };

@@ -131,7 +131,7 @@ void DrawSongInfo()
 
     while (SongList[songSelection].song[idx].beatDivider != 0)
     {
-        if (SongList[songSelection].song[idx].t != P)
+        if (SongList[songSelection].song[idx].t != P && SongList[songSelection].song[idx].isPlayed)
         {
             objects++;
         }
@@ -233,7 +233,7 @@ void SelectSongSpeed()
             SelectSeed();
             return;
         case left:
-            if (songSpeedMultiplicator > 0.51)
+            if (songSpeedMultiplicator > 0.11)
             {
                 songSpeedMultiplicator -= 0.1;
                 DrawSongInfo();
@@ -445,8 +445,8 @@ Direction GetJoystickPosition()
 
 void DrawScore()
 {
-    char scoreAsString[5];
-    sprintf(scoreAsString, "%4d", infos->score);
+    char scoreAsString[6];
+    sprintf(scoreAsString, "%5d", infos->score);
     gui->PutString(36, 3, scoreAsString);
 }
 
@@ -532,7 +532,6 @@ void NextTick(int timems)
                     infos->misses++;
                     infos->combo = 0;
                 }
-
                 delete gameObjects[i];
                 gameObjects[i] = nullptr;
             }

@@ -40,6 +40,9 @@
 #define MAIN
 
 #include <GameDisplay.h>
+#include <Tasks/GameLogic.h>
+#include <Tasks/ObjectSpawn.h>
+#include <Tasks/PlaySong.h>
 #include <Utils/HoldObject.h>
 #include <Utils/HitObject.h>
 #include <Utils/BaseObject.h>
@@ -52,150 +55,23 @@
 #include "task.h"
 #include "gpio_msp432.h"
 #include "task_monitor.h"
+#include "uart_msp432.h"
+#include "std_io.h"
 using namespace std;
 
 task_monitor monitor;
-int objectSpeedMs = 1000;
-float songSpeedMultiplicator = 1;
-int songSelection = 0;
-int songCount = 2;
-int objectTimer = 0;
-int seed = 1;
-
-class SongTask: public task
-{
-private:
-    PlaySound p;
-public:
-    // The base class 'task' has to be called with
-    // the name of the task, and optionally (as the second
-    // parameter) the stack size of the task.
-    SongTask(const char * name) :
-            task(name)
-    {
-    }
-
-    // This is the task code, which is
-    // run by the multitasking kernel
-    void run() override
-    {
-        int idx = 0;
-
-        //Sync Object Spawner with melody
-        sleep(objectSpeedMs);
-        int startTime = monitor.millis();
-
-        while (SongList[songSelection].song[idx].beatDivider != 0)
-        {
-            while ((monitor.millis() - startTime)
-                    <= SongList[songSelection].song[idx].dueAtMS)
-                ;
-            int overdue = (monitor.millis() - startTime)
-                    - SongList[songSelection].song[idx].dueAtMS;
-            if (SongList[songSelection].song[idx].t != P)
-                p.playTone(
-                        SongList[songSelection].song[idx].t,
-                        SongList[songSelection].song[idx].durationMS - overdue);
-            idx++;
-        }
-
-        //p.playMelody(SongList[songSelection].song, SongList[songSelection].bpm, SongList[songSelection].scale);
-    }
-};
-
-class GameTask: public task
-{
-public:
-    // The base class 'task' has to be called with
-    // the name of the task, and optionally (as the second
-    // parameter) the stack size of the task.
-    GameTask(const char * name) :
-            task(name)
-    {
-    }
-
-    // This is the task code, which is
-    // run by the multitasking kernel
-    void run() override
-    {
-        while (1)
-        {
-            NextTick(monitor.millis());
-        }
-    }
-};
-
-class ObjectSpawn: public task
-{
-private:
-    Direction lastDirection;
-    bool wasHold = true;
-public:
-    // The base class 'task' has to be called with
-    // the name of the task, and optionally (as the second
-    // parameter) the stack size of the task.
-    ObjectSpawn(const char * name) :
-            task(name)
-    {
-    }
-
-    void onBeatTriggered(int duration)
-    {
-        BaseObject* obj;
-        Direction direction;
-        bool isHold = duration >= 250 / songSpeedMultiplicator;
-
-        do
-        {
-            direction = static_cast<Direction>(rand() % 4);
-        }
-        while (direction == lastDirection); //&& !(!isHold && !wasHold));
-
-        if (isHold)
-            obj = new HoldObject(direction, objectSpeedMs, duration);
-        else
-            obj = new HitObject(direction, objectSpeedMs);
-
-        lastDirection = direction;
-        wasHold = isHold;
-    }
-
-// This is the task code, which is
-// run by the multitasking kernel
-    void run() override
-    {
-        srand(seed);
-        int idx = 0;
-        int startTime = monitor.millis();
-        objectTimer = startTime;
-
-        while (SongList[songSelection].song[idx].beatDivider != 0)
-        {
-            while ((monitor.millis() - startTime)
-                    <= SongList[songSelection].song[idx].dueAtMS)
-                ;
-            int overdue = (monitor.millis() - startTime)
-                    - SongList[songSelection].song[idx].dueAtMS;
-            if (SongList[songSelection].song[idx].t != P)
-                onBeatTriggered(
-                        SongList[songSelection].song[idx].durationMS - overdue);
-            idx++;
-        }
-    }
-};
 
 int main()
 {
     StartDisplay();
     ObjectSpawn o(
-           "Creates random objects the player needs to deflect with their joystick");
+            "Creates random objects the player needs to deflect with their joystick");
     o.start();
-    GameTask g("Handles game ticks, drawing and logic");
+    GameLogic g("Handles game ticks, drawing and logic");
     g.start();
-    SongTask s("Plays the song and creates objects based on the beats");
+    PlaySong s("Plays the song and creates objects based on the beats");
     s.start();
 
-    task_monitor monitor;
     monitor.start();
     task::start_scheduler();
 
