@@ -43,27 +43,17 @@
 #include <Tasks/GameLogic.h>
 #include <Tasks/ObjectSpawn.h>
 #include <Tasks/PlaySong.h>
-#include <Utils/HoldObject.h>
-#include <Utils/HitObject.h>
-#include <Utils/BaseObject.h>
-#include <Sound/PlaySound.h>
 #include <Utils/StaticBase.h>
-#include <stdlib.h>     /* srand, rand */
-#include <time.h>
-#include <Sound/Songs.h>
-#include "math.h"
-#include "task.h"
-#include "gpio_msp432.h"
-#include "task_monitor.h"
-#include "uart_msp432.h"
-#include "std_io.h"
 using namespace std;
 
 task_monitor monitor;
 
 int main()
 {
+    //Let the player choose their options
     StartDisplay();
+
+    //Begin all tasks and thus the game
     ObjectSpawn o(
             "Creates random objects the player needs to deflect with their joystick");
     o.start();

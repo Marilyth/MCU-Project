@@ -11,19 +11,15 @@
 #include "task.h"
 #include <Utils/StaticBase.h>
 
+//Tells the GameDisplay to handle the next tick and how much time has passed
 class GameLogic: public task
 {
 public:
-    // The base class 'task' has to be called with
-    // the name of the task, and optionally (as the second
-    // parameter) the stack size of the task.
     GameLogic(const char * name) :
             task(name)
     {
     }
 
-    // This is the task code, which is
-    // run by the multitasking kernel
     void run() override
     {
         while (1)

@@ -9,6 +9,7 @@
 #define UTILS_GAMEINFORMATION_H_
 #include <Utils/BaseObject.h>
 
+//Represents all kinds of information about the current game
 class GameInformation{
 public:
     int score;

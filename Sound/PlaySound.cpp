@@ -38,6 +38,7 @@ void PlaySound::playTone(TONE t, int ms)
     _tone_timer.stop();
 }
 
+//Calculates the time in milliseconds when each beat of the song has to be played/is due
 void CalculateDueTime(ENTRY t[], float BPM)
 {
     int idx = 0;

@@ -13,26 +13,23 @@
 #include <Sound/Songs.h>
 #include <Utils/StaticBase.h>
 
+//Plays the beats of the song
 class PlaySong: public task
 {
 private:
     PlaySound p;
 public:
-    // The base class 'task' has to be called with
-    // the name of the task, and optionally (as the second
-    // parameter) the stack size of the task.
     PlaySong(const char * name) :
             task(name)
     {
     }
 
-    // This is the task code, which is
-    // run by the multitasking kernel
+    //Iterates through the song and plays the tones when they are due
     void run() override
     {
         int idx = 0;
 
-        //Sync Object Spawner with melody
+        //Sync melody to start when the first object hits the shield
         sleep(objectSpeedMs);
         int startTime = monitor.millis();
 

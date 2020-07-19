@@ -12,6 +12,7 @@
 #include <Utils/BaseObject.h>
 #include <Utils/Position.h>
 
+//Represents a Glittereffect in the position of a deflected object
 class SuccessObject: public BaseObject
 {
 private:
@@ -33,6 +34,7 @@ public:
         }
     }
 
+    //Doesn't actually move, it just draws and erases the glitter effect
     void move(int msPassed, Direction shieldDirection)
     {
         totalMsPassed += msPassed;

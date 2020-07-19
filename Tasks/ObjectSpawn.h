@@ -17,24 +17,25 @@
 #include <stdlib.h>
 #include <Utils/StaticBase.h>
 
+//Creates objects which correspond to the beat of the song
 class ObjectSpawn: public task
 {
 private:
     Direction lastDirection;
     bool wasHold = true;
 public:
-    // The base class 'task' has to be called with
-    // the name of the task, and optionally (as the second
-    // parameter) the stack size of the task.
     ObjectSpawn(const char * name) :
             task(name)
     {
     }
 
+    //Creates an object in a random direction different form the last one
     void onBeatTriggered(int duration)
     {
         BaseObject* obj;
         Direction direction;
+
+        //Whether the beat was long enough to warrant a hold object
         bool isHold = duration >= 250 / songSpeedMultiplicator;
 
         do
@@ -52,8 +53,7 @@ public:
         wasHold = isHold;
     }
 
-// This is the task code, which is
-// run by the multitasking kernel
+    //Iterates through the song beats and creates objects if they are to be played and not a pause
     void run() override
     {
         srand(seed);

@@ -11,8 +11,8 @@
 #include <Visuals/GameDisplay.h>
 #include <Utils/Position.h>
 #include <Utils/BaseObject.h>
-#include <Utils/SuccessObject.h>
 
+//Represents a deflectable object
 class HitObject: public BaseObject
 {
 public:
@@ -30,6 +30,7 @@ public:
         }
     }
 
+    //Move the object toward the player shield
     void move(int msPassed, Direction shieldDirection)
     {
         DrawArrow(pos->x, pos->y, direction, true);

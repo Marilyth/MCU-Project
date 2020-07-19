@@ -50,16 +50,21 @@
 #include "uGUI_colors.h"
 #include "font_4x6.h"
 #include "font_6x10.h"
-#include "yahal_String.h"
-#include <string>
 #include <Sound/Songs.h>
 
+//Handles all drawing on the monitor
 st7735s_drv* lcd = nullptr;
 uGUI* gui = nullptr;
+
+//Includes the score, hits, misses, etc
 GameInformation* infos = new GameInformation();
+
+//Space for up to 20 objects the player needs to deflect at a time
 BaseObject* gameObjects[20];
+
 extern const uint16_t heart[121];
 
+//Methods for waiting a set amount of time with the oneshot timer
 void callback(void * arg)
 {
     (*static_cast<bool *>(arg)) = true;
@@ -77,6 +82,7 @@ void wait(int ms)
         ;
 }
 
+//Boots up the monitor and lets the player decide the options for the game, before terminating
 void StartDisplay()
 {
     // Setup SPI interface
@@ -121,6 +127,7 @@ void StartDisplay()
     gui->PutString(18, 17, totalObjects);
 }
 
+//Displays the name, amount of objects and length of the song
 void DrawSongInfo()
 {
     //Song name and info
@@ -129,6 +136,7 @@ void DrawSongInfo()
     int msLength = 0;
     CalculateDueTime(SongList[songSelection].song, SongList[songSelection].bpm);
 
+    //Calculate the length and amount of objects
     while (SongList[songSelection].song[idx].beatDivider != 0)
     {
         if (SongList[songSelection].song[idx].t != P && SongList[songSelection].song[idx].isPlayed)
@@ -156,6 +164,7 @@ void DrawSongInfo()
     gui->PutString(4, 36, duration);
 }
 
+//Draws the initial options
 void DrawOptions()
 {
     DrawSongInfo();
@@ -181,6 +190,8 @@ void DrawOptions()
     gui->PutString(33, 116, sseed);
 }
 
+//Lets the player choose between reaction time of 500ms to 3000ms by going left or right with the joystick
+//Going up or down with the joystick changes the option
 void SelectObjectSpeed()
 {
     gui->DrawFrame(1, 53, 126, 75, C_YELLOW);
@@ -215,6 +226,8 @@ void SelectObjectSpeed()
     }
 }
 
+//Lets the player choose between song speed of 0.1x to 2x by going left or right with the joystick
+//Going up or down with the joystick changes the option
 void SelectSongSpeed()
 {
     gui->DrawFrame(1, 78, 126, 100, C_YELLOW);
@@ -257,6 +270,8 @@ void SelectSongSpeed()
     }
 }
 
+//Lets the player choose a random seed by going left or right with the joystick
+//Going up or down with the joystick changes the option
 void SelectSeed()
 {
     gui->DrawFrame(1, 104, 126, 126, C_YELLOW);
@@ -292,6 +307,8 @@ void SelectSeed()
     }
 }
 
+//Lets the player choose a song by going left or right with the joystick
+//Going up or down with the joystick changes the option
 void SelectSong()
 {
     gui->DrawFrame(1, 0, 126, 52, C_YELLOW);
@@ -329,6 +346,8 @@ void SelectSong()
 
 }
 
+//Actually doesn't draw an arrow but a square..
+//This is the visual representation of a HitObject
 void DrawArrow(int x, int y, Direction d, bool erase)
 {
     auto color = erase ? C_BLACK : C_RED;
@@ -350,6 +369,8 @@ void DrawArrow(int x, int y, Direction d, bool erase)
     }
 }
 
+//Draws Glitter
+//This is the visual representation of the SuccessObject
 void DrawGlitter(int x, int y, bool erase)
 {
     auto color = erase ? C_BLACK : C_YELLOW;
@@ -366,6 +387,8 @@ void DrawGlitter(int x, int y, bool erase)
     gui->DrawPixel(x, y + 3, color);
 }
 
+//Draws a simple line
+//This is the visual representation of the HoldObject
 void DrawLine(int x1, int y1, int x2, int y2, bool erase)
 {
     auto color = erase ? C_BLACK : C_RED;
@@ -373,6 +396,7 @@ void DrawLine(int x1, int y1, int x2, int y2, bool erase)
     gui->DrawLine(x1, y1, x2, y2, color);
 }
 
+//Draws the heart in the center of the screen
 void DrawHeart()
 {
     uGUI::BMP bmp;
@@ -464,6 +488,8 @@ void DrawAccuracy()
     gui->PutString(4, 17, accuracyString);
 }
 
+//Draws a line 10 pixels off the center, in the direction of the joystick
+//This line deflects objects
 void DrawShield(Direction d, UG_COLOR c)
 {
     switch (d)
@@ -485,6 +511,8 @@ void DrawShield(Direction d, UG_COLOR c)
     }
 }
 
+//Handles Gameticks for each object
+//Also handles a bit of logic like making sure the player can't just keep the joystick in a direction
 int lastTimems = 0;
 bool mustChangeDirection = false;
 void NextTick(int timems)
@@ -501,7 +529,7 @@ void NextTick(int timems)
         mustChangeDirection = false;
     }
 
-    //Move and draw all objects
+    //Move and draw all objects, update GameInformation
     for (int i = 0; i < 20; i++)
     {
         if (gameObjects[i] != nullptr)
@@ -538,6 +566,7 @@ void NextTick(int timems)
         }
     }
 
+    //Only update score etc. if they have been changed
     if (updateUI)
     {
         DrawScore();

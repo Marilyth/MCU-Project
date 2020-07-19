@@ -4,7 +4,7 @@
  *  Created on: 04.04.2020
  *      Author: student
  *
- *  Beispielloesung des Praktikums 2
+ *  Beispielloesung des Praktikums 2 (leicht angepasst)
  */
 
 #ifndef PLAYSOUND_H_
