@@ -30,9 +30,6 @@ public:
                 gameObjects[i] = this;
                 break;
             }
-
-            if (i == 20)
-                int test = 0;
         }
     }
 
@@ -66,16 +63,16 @@ public:
             switch (direction)
             {
             case up:
-                EraseGlitter(61, 48);
+                DrawGlitter(61, 48, true);
                 break;
             case down:
-                EraseGlitter(61, 78);
+                DrawGlitter(61, 78, true);
                 break;
             case left:
-                EraseGlitter(48, 61);
+                DrawGlitter(48, 61, true);
                 break;
             case right:
-                EraseGlitter(78, 61);
+                DrawGlitter(78, 61, true);
                 break;
             }
         }

@@ -38,9 +38,6 @@ public:
                 gameObjects[i] = this;
                 break;
             }
-
-            if (i == 20)
-                int test = 0;
         }
     }
 
@@ -68,8 +65,8 @@ public:
 
         if (isTailActive)
         {
-            EraseLine(tailPos->x, tailPos->y, tailPos->x + x_dir * progress,
-                      tailPos->y + y_dir * progress);
+            DrawLine(tailPos->x, tailPos->y, tailPos->x + x_dir * progress,
+                     tailPos->y + y_dir * progress, true);
             tailPos->x += x_dir * progress;
             tailPos->y += y_dir * progress;
         }
@@ -80,12 +77,13 @@ public:
             joystickHold += msPassed;
             if (joystickHold >= msHold - 50)
             {
+                DrawLine(tailPos->x, tailPos->y, pos->x, pos->y, true);
                 state = hit;
-                SuccessObject* s = new SuccessObject(direction, 200);
             }
             else if (joystickHold + (msDuration + msHold) * 1.15 - totalMsPassed
                     < msHold - 50)
             {
+                DrawLine(tailPos->x, tailPos->y, pos->x, pos->y, true);
                 state = missed;
             }
         }
@@ -94,6 +92,10 @@ public:
     bool isDone()
     {
         return totalMsPassed > (msDuration + msHold) * 1.15;
+    }
+
+    ~HoldObject(){
+        delete tailPos;
     }
 };
 

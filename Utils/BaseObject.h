@@ -73,6 +73,10 @@ public:
     virtual void move(int msPassed, Direction shieldDirection) = 0;
 
     virtual bool isDone() = 0;
+
+    virtual ~BaseObject(){
+        delete pos;
+    }
 };
 
 #endif /* BASEOBJECT_H_ */

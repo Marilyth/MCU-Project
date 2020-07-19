@@ -56,10 +56,11 @@ using namespace std;
 
 task_monitor monitor;
 int objectSpeedMs = 1000;
-double songSpeedMultiplicator = 1;
+float songSpeedMultiplicator = 1;
 int songSelection = 0;
-int songCount = 1;
+int songCount = 2;
 int objectTimer = 0;
+int seed = 1;
 
 class SongTask: public task
 {
@@ -86,8 +87,6 @@ public:
 
         while (SongList[songSelection].song[idx].beatDivider != 0)
         {
-            auto currentEntry = SongList[songSelection].song[idx];
-
             while ((monitor.millis() - startTime)
                     <= SongList[songSelection].song[idx].dueAtMS)
                 ;
@@ -144,7 +143,7 @@ public:
     {
         BaseObject* obj;
         Direction direction;
-        bool isHold = duration > 300 * songSpeedMultiplicator;
+        bool isHold = duration >= 250 / songSpeedMultiplicator;
 
         do
         {
@@ -165,13 +164,13 @@ public:
 // run by the multitasking kernel
     void run() override
     {
+        srand(seed);
         int idx = 0;
         int startTime = monitor.millis();
         objectTimer = startTime;
 
         while (SongList[songSelection].song[idx].beatDivider != 0)
         {
-            auto currentEntry = SongList[songSelection].song[idx];
             while ((monitor.millis() - startTime)
                     <= SongList[songSelection].song[idx].dueAtMS)
                 ;
@@ -187,10 +186,9 @@ public:
 
 int main()
 {
-    srand(time(0));
     StartDisplay();
     ObjectSpawn o(
-            "Creates random objects the player needs to deflect with their joystick");
+           "Creates random objects the player needs to deflect with their joystick");
     o.start();
     GameTask g("Handles game ticks, drawing and logic");
     g.start();

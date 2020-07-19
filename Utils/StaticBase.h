@@ -10,7 +10,8 @@
 
 //Meta Information that may be used statically in multiple locations
 extern int objectSpeedMs;
-extern double songSpeedMultiplicator;
+extern float songSpeedMultiplicator;
+extern int seed;
 extern int songSelection;
 extern int songCount;
 

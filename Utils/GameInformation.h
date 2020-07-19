@@ -15,7 +15,7 @@ public:
     int combo;
     int hits;
     int misses;
-    double accuracy;
+    int totalObjects;
     Direction shieldDirection;
 
     GameInformation(){
@@ -23,7 +23,7 @@ public:
         combo = 0;
         hits = 0;
         misses = 0;
-        accuracy = 0;
+        totalObjects = 0;
         shieldDirection = idle;
     }
 };

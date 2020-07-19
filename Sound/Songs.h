@@ -10,14 +10,11 @@
 #include <Sound/PlaySound.h>
 
 struct Beatmap{
-    int bpm;
-    int scale;
+    float bpm;
     char* name;
-    ENTRY song[200];
+    ENTRY song[500];
 };
 
-extern Beatmap SuperMario;
-
-extern Beatmap SongList[1];
+extern Beatmap SongList[2];
 
 #endif

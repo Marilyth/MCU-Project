@@ -94,9 +94,9 @@ enum TONE
 struct ENTRY
 {
     TONE t = P;
-    double beatDivider = 0;
+    float beatDivider = 0;
     int dueAtMS = -1;
-    int durationMS = -1;
+    unsigned short durationMS = -1;
 };
 
 class PlaySound
@@ -116,6 +116,6 @@ private:
     bool _is_silent;
 };
 
-void CalculateDueTime(ENTRY t[], int bpm, int scale = 1);
+void CalculateDueTime(ENTRY t[], float bpm);
 
 #endif /* PLAYSOUND_H_ */

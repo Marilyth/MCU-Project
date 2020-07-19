@@ -32,7 +32,7 @@ public:
 
     void move(int msPassed, Direction shieldDirection)
     {
-        EraseObject(pos->x, pos->y);
+        DrawArrow(pos->x, pos->y, direction, true);
 
         double progress = (double) msPassed / msDuration;
         totalMsPassed += msPassed;
@@ -45,14 +45,13 @@ public:
                 if (shieldDirection == direction)
                 {
                     state = hit;
-                    SuccessObject* s = new SuccessObject(direction, 200);
                     return;
                 }
             }
 
             pos->x += x_dir * progress;
             pos->y += y_dir * progress;
-            DrawObject(pos->x, pos->y);
+            DrawArrow(pos->x, pos->y, direction);
         }
 
         //Player failed to deflect the object in time

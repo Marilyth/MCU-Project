@@ -42,14 +42,14 @@ void PlaySound::playTone(TONE t, int ms)
     _tone_timer.stop();
 }
 
-void CalculateDueTime(ENTRY t[], int BPM, int scale)
+void CalculateDueTime(ENTRY t[], float BPM)
 {
     int idx = 0;
     double msPerBeat = 60000.0 / BPM;
     double usGoneBy = 0;
     while (t[idx].beatDivider != 0)
     {
-        double duration = (1.0 / t[idx].beatDivider) * msPerBeat * scale * songSpeedMultiplicator;
+        double duration = (1.0 / t[idx].beatDivider) * (msPerBeat / songSpeedMultiplicator);
         t[idx].dueAtMS = usGoneBy / 1000;
         t[idx].durationMS = (int)duration;
         usGoneBy += duration * 1000;

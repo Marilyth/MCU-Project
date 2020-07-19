@@ -38,6 +38,7 @@
 #include <GameDisplay.h>
 #include <Utils/GameInformation.h>
 #include <Utils/StaticBase.h>
+#include <Utils/SuccessObject.h>
 #include <stdio.h>
 #include "math.h"
 #include "gpio_msp432.h"
@@ -48,6 +49,7 @@
 #include "uGUI.h"
 #include "uGUI_colors.h"
 #include "font_4x6.h"
+#include "font_6x10.h"
 #include "yahal_String.h"
 #include <string>
 #include <Sound/Songs.h>
@@ -56,10 +58,22 @@ st7735s_drv* lcd = nullptr;
 uGUI* gui = nullptr;
 GameInformation* infos = new GameInformation();
 BaseObject* gameObjects[20];
+extern const uint16_t heart[121];
 
-void wait(int ticks)
+void callback(void * arg)
 {
-    for (int i = 0; i < ticks; i++)
+    (*static_cast<bool *>(arg)) = true;
+}
+
+void wait(int ms)
+{
+    bool expired = false;
+    timer_msp432 timer(TIMER32_2);
+    timer.setPeriod(ms * 1000, TIMER::ONE_SHOT);
+    timer.setCallback(callback, &expired);
+    timer.start();
+
+    while (!expired)
         ;
 }
 
@@ -82,12 +96,12 @@ void StartDisplay()
 
     lcd->clearScreen(0x0);
     gui->SetForecolor(C_YELLOW);
-    gui->FontSelect(&FONT_4X6);
+    gui->FontSelect(&FONT_6X10);
 
-    SelectObjectSpeed();
-    SelectSongSpeed();
+    DrawOptions();
     SelectSong();
     lcd->clearScreen(0x0);
+    gui->FontSelect(&FONT_4X6);
 
     gui->PutString(45, 53, "Have Fun!");
     char countdown[2];
@@ -95,194 +109,287 @@ void StartDisplay()
     {
         sprintf(countdown, "%d", i);
         gui->PutString(61, 60, countdown);
-        wait(4200000);
+        wait(1000);
     }
     lcd->clearScreen(0x0);
+    DrawHeart();
 
     gui->PutString(4, 3, "Score: ");
     gui->PutString(4, 10, "Combo: ");
+    char totalObjects[5];
+    sprintf(totalObjects, "/%3d", infos->totalObjects);
+    gui->PutString(18, 17, totalObjects);
+}
+
+void DrawSongInfo()
+{
+    //Song name and info
+    int idx = 0;
+    int objects = 0;
+    int msLength = 0;
+    CalculateDueTime(SongList[songSelection].song, SongList[songSelection].bpm);
+
+    while (SongList[songSelection].song[idx].beatDivider != 0)
+    {
+        if (SongList[songSelection].song[idx].t != P)
+        {
+            objects++;
+        }
+        msLength = SongList[songSelection].song[idx].dueAtMS
+                + SongList[songSelection].song[idx].durationMS;
+        idx++;
+    }
+
+    infos->totalObjects = objects;
+
+    char name[35];
+    char objectCount[14];
+    char duration[16];
+    sprintf(name, "%-34s", SongList[songSelection].name);
+    sprintf(objectCount, "Objects: %4d", objects);
+
+    int minutes = msLength / 60000;
+    int seconds = (msLength - minutes * 60000) / 1000;
+    sprintf(duration, "Length: %dm %2ds", minutes, seconds);
+    gui->PutString(4, 3, name);
+    gui->PutString(4, 25, objectCount);
+    gui->PutString(4, 36, duration);
+}
+
+void DrawOptions()
+{
+    DrawSongInfo();
+
+    //Reaction time option
+    gui->PutString(27, 54, "Reaction Time");
+    char react[13];
+    sprintf(react, "<- %4dms ->", objectSpeedMs);
+    gui->PutString(30, 65, react);
+
+    //Song speed option
+    gui->PutString(33, 79, "Song Speed");
+    int multiplicator = songSpeedMultiplicator;
+    int multiplicatorDecimal = (songSpeedMultiplicator - multiplicator) * 10;
+    char speed[11];
+    sprintf(speed, "<- %d.%dx ->", multiplicator, multiplicatorDecimal);
+    gui->PutString(33, 90, speed);
+
+    //Random seed option
+    gui->PutString(30, 105, "Random Seed");
+    char sseed[11];
+    sprintf(sseed, "<- %4d ->", seed);
+    gui->PutString(33, 116, sseed);
 }
 
 void SelectObjectSpeed()
 {
-    lcd->clearScreen(0x0);
-    gui->PutString(4, 3, "Please select the reaction time-window!");
-    gui->PutString(4, 17, "Move the joystick right to confirm.");
+    gui->DrawFrame(1, 53, 126, 75, C_YELLOW);
 
-    Direction joystickPosition = idle;
-    while (joystickPosition != right)
+    while (!IsJoystickPressed())
     {
-        if (joystickPosition == down && objectSpeedMs > 500)
+        wait(300);
+        Direction d = GetJoystickPosition();
+        switch (d)
         {
-            objectSpeedMs -= 100;
+        case up:
+            gui->DrawFrame(1, 53, 126, 75, C_BLACK);
+            SelectSong();
+            return;
+        case down:
+            gui->DrawFrame(1, 53, 126, 75, C_BLACK);
+            SelectSongSpeed();
+            return;
+        case left:
+            if (objectSpeedMs > 500)
+                objectSpeedMs -= 100;
+            break;
+        case right:
+            if (objectSpeedMs < 3000)
+                objectSpeedMs += 100;
+            break;
         }
-        else if (joystickPosition == up && objectSpeedMs < 5000)
-        {
-            objectSpeedMs += 100;
-        }
-        int test = objectSpeedMs;
-        char value[6];
-        sprintf(value, "%dms", objectSpeedMs);
-        gui->PutString(40, 63, value);
 
-        //Wait a little after input
-        wait(700000);
-
-        do
-        {
-            joystickPosition = GetJoystickPosition();
-        }
-        while (joystickPosition == idle);
+        char react[13];
+        sprintf(react, "<- %4dms ->", objectSpeedMs);
+        gui->PutString(30, 65, react);
     }
 }
 
 void SelectSongSpeed()
 {
-    lcd->clearScreen(0x0);
-    gui->PutString(
-            4, 3,
-            "Please select the song speed multiplicator - higher is slower!");
-    gui->PutString(4, 24, "Move the joystick right to confirm.");
-
-    Direction joystickPosition = idle;
-    while (joystickPosition != right)
+    gui->DrawFrame(1, 78, 126, 100, C_YELLOW);
+    while (!IsJoystickPressed())
     {
-        if (joystickPosition == down && songSpeedMultiplicator > 0.51)
+        wait(300);
+        Direction d = GetJoystickPosition();
+        switch (d)
         {
-            songSpeedMultiplicator -= 0.1;
-        }
-        else if (joystickPosition == up && songSpeedMultiplicator < 3)
-        {
-            songSpeedMultiplicator += 0.1;
+        case up:
+            gui->DrawFrame(1, 78, 126, 100, C_BLACK);
+            SelectObjectSpeed();
+            return;
+        case down:
+            gui->DrawFrame(1, 78, 126, 100, C_BLACK);
+            SelectSeed();
+            return;
+        case left:
+            if (songSpeedMultiplicator > 0.51)
+            {
+                songSpeedMultiplicator -= 0.1;
+                DrawSongInfo();
+            }
+            break;
+        case right:
+            if (songSpeedMultiplicator < 2)
+            {
+                songSpeedMultiplicator += 0.1;
+                DrawSongInfo();
+            }
+            break;
         }
 
         int multiplicator = songSpeedMultiplicator;
-        double test = songSpeedMultiplicator;
-        int multiplicatorDecimal = (songSpeedMultiplicator - multiplicator)
-                * 10;
-        char value[5];
-        sprintf(value, "%d.%dx", multiplicator, multiplicatorDecimal);
-        gui->PutString(40, 63, value);
+        int multiplicatorDecimal = round(
+                (songSpeedMultiplicator - multiplicator) * 10);
+        char speed[11];
+        sprintf(speed, "<- %d.%dx ->", multiplicator, multiplicatorDecimal);
+        gui->PutString(33, 90, speed);
+    }
+}
 
-        //Wait a little after input
-        wait(700000);
+void SelectSeed()
+{
+    gui->DrawFrame(1, 104, 126, 126, C_YELLOW);
 
-        do
+    while (!IsJoystickPressed())
+    {
+        wait(300);
+        Direction d = GetJoystickPosition();
+        switch (d)
         {
-            joystickPosition = GetJoystickPosition();
+        case up:
+            gui->DrawFrame(1, 104, 126, 126, C_BLACK);
+            SelectSongSpeed();
+            return;
+        case down:
+            gui->DrawFrame(1, 104, 126, 126, C_BLACK);
+            SelectSong();
+            return;
+        case left:
+            if (seed > 0)
+            {
+                seed -= 1;
+            }
+            break;
+        case right:
+            seed += 1;
+            break;
         }
-        while (joystickPosition == idle);
+
+        char sseed[11];
+        sprintf(sseed, "<- %4d ->", seed);
+        gui->PutString(33, 116, sseed);
     }
 }
 
 void SelectSong()
 {
-    lcd->clearScreen(0x0);
-    gui->PutString(4, 3, "Please select a song!");
-    gui->PutString(4, 10, "Move the joystick right to confirm.");
+    gui->DrawFrame(1, 0, 126, 52, C_YELLOW);
 
-    Direction joystickPosition = idle;
-    while (joystickPosition != right)
+    while (!IsJoystickPressed())
     {
-        if (joystickPosition == up)
+        wait(300);
+        Direction d = GetJoystickPosition();
+        switch (d)
         {
-            if (songSelection != songCount)
-                songSelection += 1;
-        }
-        else if (joystickPosition == down)
-        {
-            if (songSelection != 0)
-                songSelection -= 1;
-        }
-
-        int idx = 0;
-        int objects = 0;
-        int msLength = 0;
-        if (SongList[songSelection].song[0].dueAtMS == -1)
-            CalculateDueTime(SongList[songSelection].song,
-                             SongList[songSelection].bpm,
-                             SongList[songSelection].scale);
-
-        while (SongList[songSelection].song[idx].beatDivider != 0)
-        {
-            if (SongList[songSelection].song[idx].t != P)
+        case up:
+            gui->DrawFrame(1, 0, 126, 52, C_BLACK);
+            SelectSeed();
+            return;
+        case down:
+            gui->DrawFrame(1, 0, 126, 52, C_BLACK);
+            SelectObjectSpeed();
+            return;
+        case left:
+            if (songSelection > 0)
             {
-                objects++;
+                songSelection -= 1;
+                DrawSongInfo();
             }
-            msLength = SongList[songSelection].song[idx].dueAtMS
-                    + SongList[songSelection].song[idx].durationMS;
-            idx++;
+            break;
+        case right:
+            if (songSelection < songCount - 1)
+            {
+                songSelection += 1;
+                DrawSongInfo();
+            }
+            break;
         }
+    }
 
-        char* name = SongList[songSelection].name;
-        char objectCount[14];
-        char duration[14];
-        sprintf(objectCount, "Objects: %04d", objects);
+}
 
-        int minutes = msLength / 60000;
-        int seconds = (msLength - minutes * 60000) / 1000;
-        sprintf(duration, "Length: %dm %ds", minutes, seconds);
-        gui->PutString(4, 63, name);
-        gui->PutString(4, 77, objectCount);
-        gui->PutString(4, 84, duration);
+void DrawArrow(int x, int y, Direction d, bool erase)
+{
+    auto color = erase ? C_BLACK : C_RED;
 
-        //Wait a little after input
-        wait(700000);
-
-        do
-        {
-            joystickPosition = GetJoystickPosition();
-        }
-        while (joystickPosition == idle);
+    switch (d)
+    {
+    case up:
+        gui->FillFrame(x, y, x - 1, y - 1, color);
+        break;
+    case down:
+        gui->FillFrame(x, y, x - 1, y + 1, color);
+        break;
+    case left:
+        gui->FillFrame(x, y, x - 1, y - 1, color);
+        break;
+    case right:
+        gui->FillFrame(x, y, x + 1, y - 1, color);
+        break;
     }
 }
 
-void DrawObject(int x, int y)
+void DrawGlitter(int x, int y, bool erase)
 {
-    gui->FillFrame(x, y, x + 1, y + 1, C_RED);
+    auto color = erase ? C_BLACK : C_YELLOW;
+
+    gui->DrawPixel(x, y, color);
+    gui->DrawPixel(x + 2, y, color);
+    gui->DrawPixel(x, y + 3, color);
+    gui->DrawPixel(x + 5, y + 1, color);
+    gui->DrawPixel(x + 2, y + 2, color);
+    gui->DrawPixel(x + 4, y + 4, color);
+    gui->DrawPixel(x, y + 4, color);
+    gui->DrawPixel(x + 1, y + 2, color);
+    gui->DrawPixel(x + 2, y, color);
+    gui->DrawPixel(x, y + 3, color);
 }
 
-void EraseGlitter(int x, int y)
+void DrawLine(int x1, int y1, int x2, int y2, bool erase)
 {
-    gui->DrawPixel(x, y, C_BLACK);
-    gui->DrawPixel(x + 2, y, C_BLACK);
-    gui->DrawPixel(x, y + 3, C_BLACK);
-    gui->DrawPixel(x + 5, y + 1, C_BLACK);
-    gui->DrawPixel(x + 2, y + 2, C_BLACK);
-    gui->DrawPixel(x + 4, y + 4, C_BLACK);
-    gui->DrawPixel(x, y + 4, C_BLACK);
-    gui->DrawPixel(x + 1, y + 2, C_BLACK);
-    gui->DrawPixel(x + 2, y, C_BLACK);
-    gui->DrawPixel(x, y + 3, C_BLACK);
+    auto color = erase ? C_BLACK : C_RED;
+
+    gui->DrawLine(x1, y1, x2, y2, color);
 }
 
-void DrawGlitter(int x, int y)
+void DrawHeart()
 {
-    gui->DrawPixel(x, y, C_YELLOW);
-    gui->DrawPixel(x + 2, y, C_YELLOW);
-    gui->DrawPixel(x, y + 3, C_YELLOW);
-    gui->DrawPixel(x + 5, y + 1, C_YELLOW);
-    gui->DrawPixel(x + 2, y + 2, C_YELLOW);
-    gui->DrawPixel(x + 4, y + 4, C_YELLOW);
-    gui->DrawPixel(x, y + 4, C_YELLOW);
-    gui->DrawPixel(x + 1, y + 2, C_YELLOW);
-    gui->DrawPixel(x + 2, y, C_YELLOW);
-    gui->DrawPixel(x, y + 3, C_YELLOW);
+    uGUI::BMP bmp;
+    bmp.height = 11;
+    bmp.width = 11;
+    bmp.p = heart;
+    bmp.bpp = 16;
+    bmp.colors = BMP_RGB565;
+    gui->DrawBMP(58, 58, &bmp);
 }
 
-void DrawLine(int x1, int y1, int x2, int y2)
+bool IsJoystickPressed()
 {
-    gui->DrawLine(x1, y1, x2, y2, C_RED);
-}
+    gpio_msp432_pin button(PORT_PIN(4, 1));
+    button.gpioMode(GPIO::INPUT | GPIO::PULLUP);
 
-void EraseLine(int x1, int y1, int x2, int y2)
-{
-    gui->DrawLine(x1, y1, x2, y2, C_BLACK);
-}
-
-void EraseObject(int x, int y)
-{
-    gui->FillFrame(x, y, x + 1, y + 1, C_BLACK);
+    return !button.gpioRead();
 }
 
 Direction GetJoystickPosition()
@@ -308,13 +415,11 @@ Direction GetJoystickPosition()
             if (x_pos < 0)
             {
                 return left;
-                gui->DrawLine(54, 54, 54, 74, C_BLUE);
             }
             //Right
             else
             {
                 return right;
-                gui->DrawLine(74, 54, 74, 74, C_BLUE);
             }
         }
 
@@ -325,13 +430,11 @@ Direction GetJoystickPosition()
             if (y_pos < 0)
             {
                 return up;
-                gui->DrawLine(54, 54, 74, 54, C_BLUE);
             }
             //Down
             else
             {
                 return down;
-                gui->DrawLine(54, 74, 74, 74, C_BLUE);
             }
         }
     }
@@ -342,25 +445,23 @@ Direction GetJoystickPosition()
 
 void DrawScore()
 {
-    char scoreAsString[7];
-    sprintf(scoreAsString, "%d", infos->score);
+    char scoreAsString[5];
+    sprintf(scoreAsString, "%4d", infos->score);
     gui->PutString(36, 3, scoreAsString);
 }
 
 void DrawCombo()
 {
     char comboAsString[5];
-    sprintf(comboAsString, "%dx", infos->combo);
+    sprintf(comboAsString, "%3dx", infos->combo);
     gui->PutString(36, 10, comboAsString);
 }
 
 void DrawAccuracy()
 {
-    char accuracyString[7];
-    double accuracy = 100
-            * ((double) infos->hits / (infos->hits + infos->misses));
-    sprintf(accuracyString, "%d%%", (int) accuracy);
-    gui->PutString(36, 17, accuracyString);
+    char accuracyString[4];
+    sprintf(accuracyString, "%3d", infos->hits);
+    gui->PutString(4, 17, accuracyString);
 }
 
 void DrawShield(Direction d, UG_COLOR c)
@@ -368,16 +469,16 @@ void DrawShield(Direction d, UG_COLOR c)
     switch (d)
     {
     case up:
-        gui->DrawLine(54, 54, 74, 54, c);
+        gui->DrawLine(53, 53, 73, 53, c);
         break;
     case down:
-        gui->DrawLine(54, 74, 74, 74, c);
+        gui->DrawLine(53, 73, 73, 73, c);
         break;
     case left:
-        gui->DrawLine(54, 54, 54, 74, c);
+        gui->DrawLine(53, 53, 53, 73, c);
         break;
     case right:
-        gui->DrawLine(74, 54, 74, 74, c);
+        gui->DrawLine(73, 53, 73, 73, c);
         break;
     default:
         break;
@@ -388,6 +489,8 @@ int lastTimems = 0;
 bool mustChangeDirection = false;
 void NextTick(int timems)
 {
+    bool updateUI = false;
+
     Direction joystick = GetJoystickPosition();
 
     if (joystick != infos->shieldDirection)
@@ -410,16 +513,22 @@ void NextTick(int timems)
             {
                 if (gameObjects[i]->state == hit)
                 {
+                    updateUI = true;
                     infos->score += 1 * ++infos->combo;
                     infos->hits++;
+                    SuccessObject* s = new SuccessObject(
+                            gameObjects[i]->direction, 200);
+
                     if (gameObjects[i]->direction == infos->shieldDirection)
                     {
                         mustChangeDirection = true;
                         DrawShield(infos->shieldDirection, C_GREEN);
                     }
                 }
-                else if(gameObjects[i]->state == missed)
+                else if (gameObjects[i]->state == missed)
                 {
+                    if (infos->combo != 0)
+                        updateUI = true;
                     infos->misses++;
                     infos->combo = 0;
                 }
@@ -430,9 +539,12 @@ void NextTick(int timems)
         }
     }
 
-    DrawScore();
-    DrawCombo();
-    //DrawAccuracy();
+    if (updateUI)
+    {
+        DrawScore();
+        DrawCombo();
+        DrawAccuracy();
+    }
 
     lastTimems = timems;
 }

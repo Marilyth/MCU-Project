@@ -11,25 +11,29 @@
 
 void StartDisplay();
 
-void DrawObject(int x, int y);
-
 void SelectObjectSpeed();
 
 void SelectSongSpeed();
 
+void SelectSeed();
+
 void SelectSong();
+
+bool IsJoystickPressed();
 
 Direction GetJoystickPosition();
 
-void DrawLine(int x1, int y1, int x2, int y2);
+void DrawLine(int x1, int y1, int x2, int y2, bool erase = false);
 
-void DrawGlitter(int x, int y);
+void DrawGlitter(int x, int y, bool erase = false);
 
-void EraseGlitter(int x, int y);
+void DrawArrow(int x, int y, Direction d, bool erase = false);
 
-void EraseLine(int x1, int y1, int x2, int y2);
+void DrawOptions();
 
-void EraseObject(int x, int y);
+void DrawSongInfo();
+
+void DrawHeart();
 
 void NextTick(int timems);
 
